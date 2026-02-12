@@ -16,8 +16,8 @@ MCP_HOST = os.getenv("MCP_HOST", "0.0.0.0")
 MCP_PORT = int(os.getenv("MCP_PORT", "8000"))
 APP_ENV = os.getenv("APP_ENV", "dev")
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
-SIGTRIP_UPSTREAM_URL = os.getenv("SIGTRIP_UPSTREAM_URL", "https://hotel.sigtrip.ai/mcp")
-SIGTRIP_API_KEY_SET = bool(os.getenv("SIGTRIP_API_KEY"))
+MCP_PROVIDER_SIGTRIP_URL = os.getenv("MCP_PROVIDER_SIGTRIP_URL", "https://hotel.sigtrip.ai/mcp")
+MCP_PROVIDER_SIGTRIP_API_KEY_SET = bool(os.getenv("MCP_PROVIDER_SIGTRIP_API_KEY"))
 
 mcp = FastMCP("SigTrip_Wrapper_Node", host=MCP_HOST, port=MCP_PORT)
 service = HotelWrapperService()
@@ -39,10 +39,10 @@ async def healthz(_request: Request) -> Response:
 @mcp.custom_route("/readyz", methods=["GET"], include_in_schema=False)
 async def readyz(_request: Request) -> Response:
     issues: list[str] = []
-    if not SIGTRIP_API_KEY_SET:
-        issues.append("SIGTRIP_API_KEY is not set")
-    if not SIGTRIP_UPSTREAM_URL:
-        issues.append("SIGTRIP_UPSTREAM_URL is not set")
+    if not MCP_PROVIDER_SIGTRIP_API_KEY_SET:
+        issues.append("MCP_PROVIDER_SIGTRIP_API_KEY is not set")
+    if not MCP_PROVIDER_SIGTRIP_URL:
+        issues.append("MCP_PROVIDER_SIGTRIP_URL is not set")
 
     if issues:
         return JSONResponse(
@@ -58,8 +58,8 @@ async def readyz(_request: Request) -> Response:
         {
             "status": "ready",
             "service": "sigtrip-wrapper-mcp",
-            "upstream": SIGTRIP_UPSTREAM_URL,
-            "api_key_configured": SIGTRIP_API_KEY_SET,
+            "upstream": MCP_PROVIDER_SIGTRIP_URL,
+            "api_key_configured": MCP_PROVIDER_SIGTRIP_API_KEY_SET,
         },
         status_code=200,
     )

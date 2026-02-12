@@ -1,8 +1,21 @@
 # SigTrip MCP Wrapper
 
-MCP wrapper server for `https://hotel.sigtrip.ai/mcp`.
+MCP wrapper server for a configurable upstream MCP (default: `https://hotel.sigtrip.ai/mcp`).
 
 It normalizes Sigtrip's mixed SSE/JSON tool responses into stable hotel-search and booking contracts suitable for AI agents.
+
+## Repository and Access Model
+
+- Repository visibility: private by default (company internal).
+- Endpoint visibility: can be public network-reachable, but should be authenticated and rate-limited.
+- Users/agents consume the deployed MCP endpoint; they do not need repository access.
+
+## Governance Docs
+
+- License: `/Users/workhard/Desktop/research/mcp/LICENSE`
+- Security policy: `/Users/workhard/Desktop/research/mcp/SECURITY.md`
+- Privacy notice (draft): `/Users/workhard/Desktop/research/mcp/PRIVACY.md`
+- API terms (draft): `/Users/workhard/Desktop/research/mcp/TERMS.md`
 
 ## Current Public Tools
 
@@ -57,9 +70,15 @@ cp .env.example .env
 
 Set environment values in `.env`:
 
-- `SIGTRIP_API_KEY=<your key>`
+- `MCP_PROVIDER_SIGTRIP_URL=<upstream mcp url>`
+- `MCP_PROVIDER_SIGTRIP_API_KEY=<upstream mcp key>`
 - optional `MCP_HOST=0.0.0.0`
 - optional `MCP_PORT=8000`
+
+Scalable naming pattern for future providers:
+- `MCP_PROVIDER_<PROVIDER>_URL`
+- `MCP_PROVIDER_<PROVIDER>_API_KEY`
+Example: `MCP_PROVIDER_EXPEDIA_URL`, `MCP_PROVIDER_EXPEDIA_API_KEY`
 
 ## Run
 
@@ -98,7 +117,7 @@ Before building the end-user web UI, complete these minimum backend gates:
 ## Ops Endpoints
 
 - `GET /healthz` -> process health
-- `GET /readyz` -> config readiness (`SIGTRIP_API_KEY`, upstream URL presence)
+- `GET /readyz` -> config readiness (`MCP_PROVIDER_SIGTRIP_API_KEY`, provider URL presence)
 
 ## MCP Inspector Checklist
 
@@ -161,7 +180,7 @@ Recommended production path:
 - Railway / Render / Fly.io (quick)
 - Cloud Run / ECS / Kubernetes (scalable)
 4. Put reverse proxy + TLS in front
-5. Set env vars securely (`SIGTRIP_API_KEY`, etc.)
+5. Set env vars securely (`MCP_PROVIDER_SIGTRIP_API_KEY`, etc.)
 6. Add health checks and basic monitoring
 
 Minimal example flow:

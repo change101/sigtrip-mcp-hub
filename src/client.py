@@ -7,8 +7,8 @@ from typing import Any
 
 import httpx
 
-UPSTREAM_URL = os.getenv("SIGTRIP_UPSTREAM_URL", "https://hotel.sigtrip.ai/mcp")
-API_KEY = os.getenv("SIGTRIP_API_KEY") or None
+UPSTREAM_URL = os.getenv("MCP_PROVIDER_SIGTRIP_URL", "https://hotel.sigtrip.ai/mcp")
+API_KEY = os.getenv("MCP_PROVIDER_SIGTRIP_API_KEY") or None
 REQUEST_TIMEOUT_SECONDS = float(os.getenv("SIGTRIP_TIMEOUT_SECONDS", "30"))
 RETRY_ATTEMPTS = int(os.getenv("SIGTRIP_RETRY_ATTEMPTS", "2"))
 

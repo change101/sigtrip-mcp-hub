@@ -10,14 +10,14 @@ Use this as an execution runbook.
 - `src/`
 
 2. Required secrets ready:
-- `SIGTRIP_API_KEY`
+- `MCP_PROVIDER_SIGTRIP_API_KEY`
 
 3. Recommended env values:
 - `MCP_HOST=0.0.0.0`
 - `MCP_PORT=8000`
 - `APP_ENV=prod`
 - `APP_VERSION=<release-tag>`
-- Optional: `SIGTRIP_UPSTREAM_URL=https://hotel.sigtrip.ai/mcp`
+- `MCP_PROVIDER_SIGTRIP_URL=https://hotel.sigtrip.ai/mcp`
 
 4. Local smoke check (before deploy):
 
@@ -48,12 +48,12 @@ Quick checks:
 
 ## 3. Variables
 In service variables, add:
-- `SIGTRIP_API_KEY`
+- `MCP_PROVIDER_SIGTRIP_API_KEY`
+- `MCP_PROVIDER_SIGTRIP_URL=https://hotel.sigtrip.ai/mcp`
 - `MCP_HOST=0.0.0.0`
 - `MCP_PORT=8000`
 - `APP_ENV=prod`
 - `APP_VERSION=<release-tag>`
-- Optional `SIGTRIP_UPSTREAM_URL`
 
 ## 4. Network/domain
 1. Open service `Settings` -> networking/public domain.
@@ -88,12 +88,12 @@ cd /Users/workhard/Desktop/research/mcp
 
 ## 3. Variables
 In `Environment` section, add:
-- `SIGTRIP_API_KEY`
+- `MCP_PROVIDER_SIGTRIP_API_KEY`
+- `MCP_PROVIDER_SIGTRIP_URL=https://hotel.sigtrip.ai/mcp`
 - `MCP_HOST=0.0.0.0`
 - `MCP_PORT=8000`
 - `APP_ENV=prod`
 - `APP_VERSION=<release-tag>`
-- Optional `SIGTRIP_UPSTREAM_URL`
 
 ## 4. Health check
 Set `Health Check Path` to:
@@ -164,13 +164,7 @@ Example essentials:
 ## 4. Set secrets
 
 ```bash
-fly secrets set SIGTRIP_API_KEY=<value> APP_ENV=prod APP_VERSION=<release-tag> MCP_HOST=0.0.0.0 MCP_PORT=8000
-```
-
-Optional:
-
-```bash
-fly secrets set SIGTRIP_UPSTREAM_URL=https://hotel.sigtrip.ai/mcp
+fly secrets set MCP_PROVIDER_SIGTRIP_API_KEY=<value> MCP_PROVIDER_SIGTRIP_URL=https://hotel.sigtrip.ai/mcp APP_ENV=prod APP_VERSION=<release-tag> MCP_HOST=0.0.0.0 MCP_PORT=8000
 ```
 
 ## 5. Deploy
@@ -194,7 +188,7 @@ cd /Users/workhard/Desktop/research/mcp
 1. Restrict who can call public MCP endpoint (`/sse`) using edge auth/API gateway/token.
 2. Add rate limiting at platform edge or proxy.
 3. Avoid logging secrets and PII.
-4. Rotate `SIGTRIP_API_KEY` on schedule.
+4. Rotate `MCP_PROVIDER_SIGTRIP_API_KEY` on schedule.
 
 ---
 
