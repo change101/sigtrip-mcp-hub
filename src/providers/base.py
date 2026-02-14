@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Protocol
-from src.models import BookingResponse, GuestDetails, SearchHotelsResponse
+from src.models import BookingCancellationResponse, BookingResponse, BookingStatusResponse, GuestDetails, SearchHotelsResponse
 
 
 class HotelProvider(Protocol):
@@ -17,4 +17,15 @@ class HotelProvider(Protocol):
         ...
 
     async def create_booking_request(self, offer_id: str, guest: GuestDetails) -> BookingResponse:
+        ...
+
+    async def cancel_booking(
+        self,
+        provider_booking_ref: str,
+        reason: str | None = None,
+        email: str | None = None,
+    ) -> BookingCancellationResponse:
+        ...
+
+    async def get_booking_status(self, provider_booking_ref: str) -> BookingStatusResponse:
         ...

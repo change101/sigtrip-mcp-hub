@@ -9,7 +9,7 @@ load_dotenv()
 
 # CONFIGURATION
 UPSTREAM_URL = "https://hotel.sigtrip.ai/mcp"
-API_KEY = os.getenv("SIGTRIP_API_KEY")
+API_KEY = os.getenv("MCP_PROVIDER_SIGTRIP_API_KEY")
 if API_KEY == "None" or API_KEY == "": API_KEY = None
 
 # HELPER: Get dynamic dates so calls don't fail
@@ -103,8 +103,18 @@ async def main():
     # 4. IMAGES (Does this return a list of URLs?)
     await call_raw("view_room_gallery", {
         "hotelName": "The Rally Hotel",
-        "expectedCount": 3,
-        "rooms": [{"roomType": "Standard", "title": "Standard Room"}]
+        "expectedCount": 1,
+        "rooms": [{"roomType": "ASK", "title": "STANDARD - All Star King"}]
+    })
+
+    # 5. CANCELLATION (Capability check only; likely unsupported on many upstreams)
+    await call_raw("cancel_booking", {
+        "bookingId": "TEST_BOOKING_REF"
+    })
+
+    # 6. BOOKING STATUS (Capability check only; likely unsupported on many upstreams)
+    await call_raw("get_booking_status", {
+        "bookingId": "TEST_BOOKING_REF"
     })
 
 if __name__ == "__main__":

@@ -1,0 +1,7 @@
+{
+  "status": "unsupported",
+  "provider": "sigtrip",
+  "provider_reference": "ref-123",
+  "message": "Upstream provider does not support booking status lookup.",
+  "contract_version": "v1"
+}

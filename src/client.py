@@ -59,6 +59,35 @@ async def call_upstream(tool_name: str, arguments: dict[str, Any]) -> dict[str, 
     return None
 
 
+async def call_upstream_method(method: str, params: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "text/event-stream, application/json",
+    }
+    if API_KEY:
+        headers["apikey"] = API_KEY
+        headers["Authorization"] = f"Bearer {API_KEY}"
+
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": method,
+    }
+    if params is not None:
+        payload["params"] = params
+
+    try:
+        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS) as client:
+            response = await client.post(UPSTREAM_URL, json=payload, headers=headers)
+            response.raise_for_status()
+    except (httpx.RequestError, httpx.HTTPStatusError) as exc:
+        logger.warning("upstream_method_failed", extra={"method": method, "error": str(exc)})
+        return None
+
+    raw = _parse_sse_payload(response.text) if "data:" in response.text else _parse_json_payload(response.text)
+    return raw if isinstance(raw, dict) else None
+
+
 def parse_upstream_response(response_text: str, content_type: str = "") -> dict[str, Any] | None:
     payload = None
     if "text/event-stream" in content_type or "data:" in response_text:

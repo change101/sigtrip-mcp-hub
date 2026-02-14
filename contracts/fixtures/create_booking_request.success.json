@@ -1,0 +1,8 @@
+{
+  "status": "payment_required",
+  "payment_url": "https://example.com/pay/123",
+  "session_expiration": "15m",
+  "provider_reference": null,
+  "error": null,
+  "contract_version": "v1"
+}

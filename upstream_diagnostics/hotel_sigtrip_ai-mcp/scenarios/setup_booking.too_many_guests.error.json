@@ -1,0 +1,37 @@
+{
+  "captured_at": "2026-02-14T19:32:57.196216+00:00",
+  "upstream_url": "https://hotel.sigtrip.ai/mcp",
+  "scenario": "setup_booking.too_many_guests.error",
+  "note": "Too many guests error behavior",
+  "request": {
+    "method": "tools/call",
+    "params": {
+      "name": "setup_booking",
+      "arguments": {
+        "hotelName": "The Rally Hotel",
+        "roomType": "ASK",
+        "firstName": "Test",
+        "lastName": "User",
+        "email": "test@example.com",
+        "phoneNumber": "+15555555555",
+        "checkIn": "2026-02-14",
+        "checkOut": "2026-02-14",
+        "guests": 99
+      }
+    }
+  },
+  "response": {
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "MCP error -32602: Input validation error: Invalid arguments for tool setup_booking: [\n  {\n    \"code\": \"too_big\",\n    \"maximum\": 10,\n    \"type\": \"number\",\n    \"inclusive\": true,\n    \"exact\": false,\n    \"message\": \"Maximum 10 guests allowed\",\n    \"path\": [\n      \"guests\"\n    ]\n  }\n]"
+        }
+      ],
+      "isError": true
+    },
+    "jsonrpc": "2.0",
+    "id": 1
+  },
+  "tool_list_contains_tool": true
+}

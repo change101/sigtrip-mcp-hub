@@ -1,0 +1,20 @@
+{
+  "provider": "sigtrip",
+  "query": {
+    "location": "denver",
+    "check_in": "2026-02-11",
+    "check_out": "2026-02-12",
+    "guests": 1
+  },
+  "metadata": {
+    "contract_version": "v1",
+    "interpreted_from_query": false,
+    "defaults_applied": [],
+    "warnings": [],
+    "data_source": {
+      "image": "upstream",
+      "pricing": "upstream"
+    }
+  },
+  "hotels": []
+}

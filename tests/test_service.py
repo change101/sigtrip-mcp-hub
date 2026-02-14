@@ -1,6 +1,6 @@
 import unittest
 
-from src.models import BookingResponse, HotelCard, Offer, PricePreview, SearchHotelsResponse
+from src.models import BookingCancellationResponse, BookingResponse, BookingStatusResponse, HotelCard, Offer, PricePreview, SearchHotelsResponse
 from src.service import HotelWrapperService
 
 
@@ -100,6 +100,45 @@ class FakeProvider:
             session_expiration="15m",
         )
 
+    async def cancel_booking(self, provider_booking_ref, reason=None, email=None):
+        if provider_booking_ref == "unsupported":
+            return BookingCancellationResponse(
+                status="unsupported",
+                provider="sigtrip",
+                provider_reference=provider_booking_ref,
+                message="Upstream provider does not support cancellation.",
+            )
+        if provider_booking_ref == "needs_email" and not email:
+            return BookingCancellationResponse(
+                status="failed",
+                provider="sigtrip",
+                provider_reference=provider_booking_ref,
+                message="Cancellation requires additional fields.",
+                required_fields=["email", "reservationId", "description"],
+                next_action="Ask user to provide missing fields from booking confirmation details.",
+            )
+        return BookingCancellationResponse(
+            status="cancelled",
+            provider="sigtrip",
+            provider_reference=provider_booking_ref,
+            message="Booking cancelled successfully.",
+        )
+
+    async def get_booking_status(self, provider_booking_ref):
+        if provider_booking_ref == "unsupported":
+            return BookingStatusResponse(
+                status="unsupported",
+                provider="sigtrip",
+                provider_reference=provider_booking_ref,
+                message="Upstream provider does not support booking status lookup.",
+            )
+        return BookingStatusResponse(
+            status="confirmed",
+            provider="sigtrip",
+            provider_reference=provider_booking_ref,
+            message="Status retrieved from upstream.",
+        )
+
 
 class HotelWrapperServiceTests(unittest.IsolatedAsyncioTestCase):
     async def test_search_returns_price_and_images(self):
@@ -114,6 +153,7 @@ class HotelWrapperServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(len(hotel["top_offers"]), 1)
         self.assertIn("metadata", result)
         self.assertIn("data_source", result["metadata"])
+        self.assertEqual(result["metadata"]["contract_version"], "v1")
 
     async def test_booking_validates_guest_schema(self):
         service = HotelWrapperService(provider=FakeProvider())
@@ -122,14 +162,22 @@ class HotelWrapperServiceTests(unittest.IsolatedAsyncioTestCase):
             "sigtrip:The_Rally_Hotel:ASK",
             '{"first_name":"A"}',
         )
-        self.assertEqual(invalid["status"], "failed")
-        self.assertIn("validation", invalid["error"])
+        self.assertEqual(invalid["ok"], False)
+        self.assertEqual(invalid["error"]["code"], "INVALID_GUEST_DETAILS_SCHEMA")
 
         valid = await service.create_booking_request(
             "sigtrip:The_Rally_Hotel:ASK",
             '{"first_name":"A","last_name":"B","email":"a@b.com","phone":"+1","check_in":"2026-02-11","check_out":"2026-02-12","guests":1}',
         )
         self.assertEqual(valid["status"], "payment_required")
+        self.assertEqual(valid["contract_version"], "v1")
+
+        failed = await service.create_booking_request(
+            "sigtrip:The_Rally_Hotel:BAD",
+            '{"first_name":"A","last_name":"B","email":"a@b.com","phone":"+1","check_in":"2026-02-11","check_out":"2026-02-12","guests":1}',
+        )
+        self.assertEqual(failed["ok"], False)
+        self.assertEqual(failed["error"]["code"], "BOOKING_FAILED")
 
     async def test_search_normalizes_us_date_format(self):
         provider = FakeProvider()
@@ -165,6 +213,7 @@ class HotelWrapperServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["comparison"][0]["rank_by_price"], 1)
         self.assertEqual(result["comparison"][0]["property_id"], "prop_us_denver_rally_hotel")
         self.assertEqual(len(result["comparison"][0]["provider_ids"]), 2)
+        self.assertEqual(result["metadata"]["contract_version"], "v1")
         self.assertLessEqual(
             result["comparison"][0]["from_total"],
             result["comparison"][1]["from_total"],
@@ -184,6 +233,31 @@ class HotelWrapperServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(provider.last_search["location"], "Denver")
         self.assertEqual(provider.last_search["guests"], 2)
         self.assertTrue(result["metadata"]["interpreted_from_query"])
+
+    async def test_cancel_booking_supported_and_unsupported(self):
+        service = HotelWrapperService(provider=FakeProvider())
+        cancelled = await service.cancel_booking("ref-123")
+        self.assertEqual(cancelled["status"], "cancelled")
+        self.assertEqual(cancelled["contract_version"], "v1")
+
+        unsupported = await service.cancel_booking("unsupported")
+        self.assertEqual(unsupported["status"], "unsupported")
+
+        needs_email = await service.cancel_booking("needs_email")
+        self.assertEqual(needs_email["ok"], False)
+        self.assertEqual(needs_email["error"]["code"], "MISSING_CANCELLATION_FIELDS")
+
+        with_email = await service.cancel_booking("needs_email", email="test@example.com")
+        self.assertEqual(with_email["status"], "cancelled")
+
+    async def test_get_booking_status_supported_and_unsupported(self):
+        service = HotelWrapperService(provider=FakeProvider())
+        status = await service.get_booking_status("ref-123")
+        self.assertEqual(status["status"], "confirmed")
+        self.assertEqual(status["contract_version"], "v1")
+
+        unsupported = await service.get_booking_status("unsupported")
+        self.assertEqual(unsupported["status"], "unsupported")
 
 
 if __name__ == "__main__":

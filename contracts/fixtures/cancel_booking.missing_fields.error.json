@@ -1,0 +1,13 @@
+{
+  "ok": false,
+  "error": {
+    "code": "MISSING_CANCELLATION_FIELDS",
+    "message": "Cancellation requires additional fields.",
+    "retryable": false,
+    "details": {
+      "required_fields": ["reservationId", "email", "description"],
+      "next_action": "Ask user to provide missing fields from booking confirmation details.",
+      "provider_booking_ref": "ref-123"
+    }
+  }
+}

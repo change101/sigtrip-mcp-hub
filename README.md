@@ -16,6 +16,11 @@ It normalizes Sigtrip's mixed SSE/JSON tool responses into stable hotel-search a
 - Security policy: `/Users/workhard/Desktop/research/mcp/SECURITY.md`
 - Privacy notice (draft): `/Users/workhard/Desktop/research/mcp/PRIVACY.md`
 - API terms (draft): `/Users/workhard/Desktop/research/mcp/TERMS.md`
+- Frozen contract spec: `/Users/workhard/Desktop/research/mcp/contracts/CONTRACT_v1.md`
+- Contract fixtures: `/Users/workhard/Desktop/research/mcp/contracts/fixtures/`
+
+Error contract:
+- All failures should use standardized envelope: `{ \"ok\": false, \"error\": { \"code\", \"message\", \"retryable\", \"details\" } }`.
 
 ## Current Public Tools
 
@@ -38,6 +43,13 @@ It normalizes Sigtrip's mixed SSE/JSON tool responses into stable hotel-search a
   - Example: `"Compare hotels in Denver for 2 guests"`
 - `create_booking_request`
   - Takes `offer_id` + guest JSON and returns payment URL or failure reason
+- `cancel_booking`
+  - Attempts cancellation by provider booking reference
+  - Returns `unsupported` gracefully if upstream provider lacks cancellation capability
+  - If upstream requires additional fields (e.g. `reservationId`, `email`, `description`), returns standardized error envelope with `MISSING_CANCELLATION_FIELDS`
+- `get_booking_status`
+  - Retrieves booking status by provider booking reference
+  - Returns `unsupported` gracefully if upstream provider lacks status capability
 
 Deprecated compatibility tools are still available:
 - `discover_hotels`
@@ -74,6 +86,7 @@ Set environment values in `.env`:
 - `MCP_PROVIDER_SIGTRIP_API_KEY=<upstream mcp key>`
 - optional `MCP_HOST=0.0.0.0`
 - optional `MCP_PORT=8000`
+- optional `MCP_STRICT_PROVIDER_CONFIG=true` (force startup failure if provider env is missing)
 
 Scalable naming pattern for future providers:
 - `MCP_PROVIDER_<PROVIDER>_URL`
@@ -101,6 +114,34 @@ Run unit + service tests:
 python -m unittest discover -s tests -v
 ```
 
+## Upstream Diagnostics
+
+Use snapshots to record each upstream MCP's supported tools and real responses (including error states).
+
+Run:
+
+```bash
+python scripts/upstream_diagnostics_snapshot.py --url-env MCP_PROVIDER_SIGTRIP_URL
+```
+
+Optional chained cancellation probe:
+
+```bash
+python scripts/upstream_diagnostics_snapshot.py --url-env MCP_PROVIDER_SIGTRIP_URL --run-cancel-chain
+```
+
+This attempts: `setup_booking -> extract booking reference -> cancel_booking` and writes:
+- `scenarios/chain.setup_booking.json`
+- `scenarios/chain.cancel_booking.json`
+
+Folder naming rule (auto-generated from URL env):
+- remove `https://` (or `http://`)
+- replace `/` with `-`
+- replace `.` with `_`
+
+Example:
+- `https://hotel.sigtrip.ai/mcp` -> `/Users/workhard/Desktop/research/mcp/upstream_diagnostics/hotel_sigtrip_ai-mcp`
+
 ## Before UI Checklist
 
 Before building the end-user web UI, complete these minimum backend gates:
@@ -118,6 +159,10 @@ Before building the end-user web UI, complete these minimum backend gates:
 
 - `GET /healthz` -> process health
 - `GET /readyz` -> config readiness (`MCP_PROVIDER_SIGTRIP_API_KEY`, provider URL presence)
+
+Startup validation behavior:
+- `APP_ENV=prod`: missing provider config fails startup.
+- non-prod: service starts, but `/readyz` reports issues.
 
 ## MCP Inspector Checklist
 
@@ -140,7 +185,11 @@ Before building the end-user web UI, complete these minimum backend gates:
 8. Call `compare_hotels_from_query` with:
    - `query="Compare hotels in Denver for 2 guests"`
 9. Call `create_booking_request` with one returned `offer_id` and valid `guest_details` JSON.
-10. Validate malformed payload behavior:
+10. Call `cancel_booking` with:
+   - `provider_booking_ref=<provider booking reference>`
+11. Call `get_booking_status` with:
+   - `provider_booking_ref=<provider booking reference>`
+12. Validate malformed payload behavior:
    - invalid `guest_details` JSON
    - missing required guest fields
    - invalid `offer_id`

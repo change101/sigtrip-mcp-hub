@@ -93,3 +93,24 @@ class ApiError(BaseModel):
     message: str
     retryable: bool = False
     details: dict | None = None
+
+
+class ErrorEnvelope(BaseModel):
+    ok: Literal[False] = False
+    error: ApiError
+
+
+class BookingCancellationResponse(BaseModel):
+    status: Literal["cancelled", "pending", "failed", "unsupported"]
+    provider: str = "sigtrip"
+    provider_reference: str | None = None
+    message: str | None = None
+    required_fields: list[str] | None = None
+    next_action: str | None = None
+
+
+class BookingStatusResponse(BaseModel):
+    status: Literal["confirmed", "cancelled", "pending", "unknown", "unsupported"]
+    provider: str = "sigtrip"
+    provider_reference: str | None = None
+    message: str | None = None

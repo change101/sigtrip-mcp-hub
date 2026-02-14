@@ -1,0 +1,37 @@
+{
+  "captured_at": "2026-02-14T19:32:57.196216+00:00",
+  "upstream_url": "https://hotel.sigtrip.ai/mcp",
+  "scenario": "setup_booking.past_date.error",
+  "note": "Past date error behavior",
+  "request": {
+    "method": "tools/call",
+    "params": {
+      "name": "setup_booking",
+      "arguments": {
+        "hotelName": "The Rally Hotel",
+        "roomType": "ASK",
+        "firstName": "Test",
+        "lastName": "User",
+        "email": "test@example.com",
+        "phoneNumber": "+15555555555",
+        "checkIn": "2020-01-01",
+        "checkOut": "2020-01-02",
+        "guests": 1
+      }
+    }
+  },
+  "response": {
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Sorry, we couldn't complete your booking: Arrival Date cannot be earlier than the Business Date"
+        }
+      ],
+      "isError": true
+    },
+    "jsonrpc": "2.0",
+    "id": 1
+  },
+  "tool_list_contains_tool": true
+}

@@ -1,0 +1,29 @@
+{
+  "captured_at": "2026-02-14T19:32:57.196216+00:00",
+  "upstream_url": "https://hotel.sigtrip.ai/mcp",
+  "scenario": "get_booking_status.capability_check",
+  "note": "Checks whether booking status tool exists/works upstream",
+  "request": {
+    "method": "tools/call",
+    "params": {
+      "name": "get_booking_status",
+      "arguments": {
+        "bookingId": "TEST_BOOKING_REF"
+      }
+    }
+  },
+  "response": {
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "MCP error -32602: Tool get_booking_status not found"
+        }
+      ],
+      "isError": true
+    },
+    "jsonrpc": "2.0",
+    "id": 1
+  },
+  "tool_list_contains_tool": false
+}

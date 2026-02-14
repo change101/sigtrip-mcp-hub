@@ -1,0 +1,63 @@
+{
+  "captured_at": "2026-02-14T19:32:57.196216+00:00",
+  "upstream_url": "https://hotel.sigtrip.ai/mcp",
+  "scenario": "get_rooms.success",
+  "note": "Basic room discovery",
+  "request": {
+    "method": "tools/call",
+    "params": {
+      "name": "get_rooms",
+      "arguments": {
+        "hotelName": "The Rally Hotel",
+        "adults": 1
+      }
+    }
+  },
+  "response": {
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Room 1: STANDARD - All Star King (ASK)\nRoom 2: DELUXE - Mile High King (MHK)\nRoom 3: PREMIUM - Champion King Corner (CHKC)"
+        }
+      ],
+      "structuredContent": {
+        "rooms": [
+          {
+            "roomType": "ASK",
+            "roomDescription": "STANDARD - All Star King",
+            "maxOccupancy": 2,
+            "category": "Standard",
+            "displayCategory": "Guest Rooms",
+            "bedCount": 1
+          },
+          {
+            "roomType": "MHK",
+            "roomDescription": "DELUXE - Mile High King",
+            "maxOccupancy": 2,
+            "category": "Deluxe",
+            "displayCategory": "Guest Rooms",
+            "bedCount": 1
+          },
+          {
+            "roomType": "CHKC",
+            "roomDescription": "PREMIUM - Champion King Corner",
+            "maxOccupancy": 2,
+            "category": "Premium",
+            "displayCategory": "Guest Rooms",
+            "bedCount": 1
+          }
+        ],
+        "keyPoints": [
+          "I can show you room photos if you want.",
+          "If the max occupancy is not enough, suggest booking multiple rooms."
+        ],
+        "_instructions": "Present keyPoints verbatim as bullets.",
+        "galleryCount": 3
+      }
+    },
+    "jsonrpc": "2.0",
+    "id": 1
+  },
+  "tool_list_contains_tool": true
+}

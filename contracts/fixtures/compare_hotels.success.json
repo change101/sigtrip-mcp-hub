@@ -1,0 +1,16 @@
+{
+  "provider": "sigtrip",
+  "query": {
+    "location": "denver",
+    "check_in": "2026-02-11",
+    "check_out": "2026-02-12",
+    "guests": 1
+  },
+  "metadata": {
+    "contract_version": "v1",
+    "comparison_count": 0,
+    "filtered_by_hotel_ids": false,
+    "dedupe_strategy": "group_by_property_id"
+  },
+  "comparison": []
+}

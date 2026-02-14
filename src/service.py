@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from src.models import BookingResponse, CompareHotelsResponse, GuestDetails, HotelComparisonItem, SearchHotelsResponse
+from src.models import ApiError, BookingResponse, CompareHotelsResponse, ErrorEnvelope, GuestDetails, HotelComparisonItem, SearchHotelsResponse
 from src.providers.base import HotelProvider
 from src.providers.sigtrip import SigtripProvider
 
@@ -51,6 +51,7 @@ class HotelWrapperService:
             interpreted_from_query=False,
         )
         metadata["provider_metadata"] = provider_metadata
+        metadata["contract_version"] = "v1"
         output["metadata"] = metadata
         return output
 
@@ -87,7 +88,16 @@ class HotelWrapperService:
             return guest
 
         response: BookingResponse = await self.provider.create_booking_request(offer_id, guest)
-        return response.model_dump(mode="json")
+        payload = response.model_dump(mode="json")
+        if payload.get("status") == "failed":
+            return error_envelope(
+                code="BOOKING_FAILED",
+                message=payload.get("error") or "Booking failed",
+                retryable=False,
+                details={"offer_id": offer_id},
+            )
+        payload["contract_version"] = "v1"
+        return payload
 
     async def compare_hotels(
         self,
@@ -142,6 +152,7 @@ class HotelWrapperService:
         payload["metadata"]["comparison_count"] = len(comparison_items)
         payload["metadata"]["filtered_by_hotel_ids"] = bool(hotel_ids)
         payload["metadata"]["dedupe_strategy"] = "group_by_property_id"
+        payload["metadata"]["contract_version"] = "v1"
         return payload
 
     async def compare_hotels_from_query(
@@ -171,23 +182,69 @@ class HotelWrapperService:
         result["metadata"] = metadata
         return result
 
+    async def cancel_booking(
+        self,
+        provider_booking_ref: str,
+        reason: str | None = None,
+        email: str | None = None,
+    ) -> dict[str, Any]:
+        if not provider_booking_ref.strip():
+            return error_envelope(
+                code="INVALID_PROVIDER_BOOKING_REF",
+                message="provider_booking_ref is required",
+                retryable=False,
+            )
+        response = await self.provider.cancel_booking(
+            provider_booking_ref=provider_booking_ref,
+            reason=reason,
+            email=email,
+        )
+        payload = response.model_dump(mode="json")
+        if payload.get("status") == "failed" and payload.get("required_fields"):
+            return error_envelope(
+                code="MISSING_CANCELLATION_FIELDS",
+                message=payload.get("message") or "Cancellation requires additional fields.",
+                retryable=False,
+                details={
+                    "required_fields": payload.get("required_fields"),
+                    "next_action": payload.get("next_action"),
+                    "provider_booking_ref": provider_booking_ref,
+                },
+            )
+        payload["contract_version"] = "v1"
+        return payload
+
+    async def get_booking_status(self, provider_booking_ref: str) -> dict[str, Any]:
+        if not provider_booking_ref.strip():
+            return error_envelope(
+                code="INVALID_PROVIDER_BOOKING_REF",
+                message="provider_booking_ref is required",
+                retryable=False,
+            )
+        response = await self.provider.get_booking_status(provider_booking_ref=provider_booking_ref)
+        payload = response.model_dump(mode="json")
+        payload["contract_version"] = "v1"
+        return payload
+
     def _parse_guest_details(self, guest_details: str) -> GuestDetails | dict[str, Any]:
         try:
             raw = json.loads(guest_details)
         except json.JSONDecodeError:
-            return {
-                "status": "failed",
-                "error": "guest_details must be valid JSON string",
-            }
+            return error_envelope(
+                code="INVALID_GUEST_DETAILS_JSON",
+                message="guest_details must be valid JSON string",
+                retryable=False,
+            )
 
         try:
             return GuestDetails.model_validate(raw)
         except ValidationError as exc:
-            return {
-                "status": "failed",
-                "error": "guest_details schema validation failed",
-                "details": exc.errors(),
-            }
+            return error_envelope(
+                code="INVALID_GUEST_DETAILS_SCHEMA",
+                message="guest_details schema validation failed",
+                retryable=False,
+                details={"validation_errors": exc.errors()},
+            )
 
 
 def _normalize_or_default_dates(check_in: str | None, check_out: str | None) -> tuple[str, str, dict[str, bool]]:
@@ -314,6 +371,12 @@ def _build_metadata(
         "warnings": warnings,
         "data_source": source_summary,
     }
+
+
+def error_envelope(code: str, message: str, retryable: bool = False, details: dict[str, Any] | None = None) -> dict[str, Any]:
+    return ErrorEnvelope(
+        error=ApiError(code=code, message=message, retryable=retryable, details=details),
+    ).model_dump(mode="json")
 
 
 def _group_hotels_by_property(hotels: list[dict[str, Any]]) -> list[dict[str, Any]]:

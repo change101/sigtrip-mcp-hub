@@ -1,0 +1,13 @@
+{
+  "captured_at": "2026-02-13T23:36:59.198556+00:00",
+  "upstream_url": "https://hotel.sigtrip.ai/mcp",
+  "scenario": "chain.cancel_booking",
+  "note": "Automated chain cancellation check after setup_booking",
+  "request_arguments": {
+    "reservationId": null,
+    "email": "diagnostics@sigtrip.com",
+    "description": "Automated diagnostics cancellation check"
+  },
+  "skipped_reason": "booking reference not found in setup_booking response",
+  "response": null
+}

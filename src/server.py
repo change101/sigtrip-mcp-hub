@@ -8,7 +8,7 @@ from mcp.server.fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from src.service import HotelWrapperService
+from src.service import HotelWrapperService, error_envelope
 
 load_dotenv()
 
@@ -18,9 +18,24 @@ APP_ENV = os.getenv("APP_ENV", "dev")
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
 MCP_PROVIDER_SIGTRIP_URL = os.getenv("MCP_PROVIDER_SIGTRIP_URL", "https://hotel.sigtrip.ai/mcp")
 MCP_PROVIDER_SIGTRIP_API_KEY_SET = bool(os.getenv("MCP_PROVIDER_SIGTRIP_API_KEY"))
+MCP_STRICT_PROVIDER_CONFIG = os.getenv("MCP_STRICT_PROVIDER_CONFIG", "false").lower() == "true"
 
 mcp = FastMCP("SigTrip_Wrapper_Node", host=MCP_HOST, port=MCP_PORT)
 service = HotelWrapperService()
+
+
+def _startup_validation() -> None:
+    issues: list[str] = []
+    if not MCP_PROVIDER_SIGTRIP_API_KEY_SET:
+        issues.append("MCP_PROVIDER_SIGTRIP_API_KEY is not set")
+    if not MCP_PROVIDER_SIGTRIP_URL:
+        issues.append("MCP_PROVIDER_SIGTRIP_URL is not set")
+
+    if issues and (APP_ENV.lower() == "prod" or MCP_STRICT_PROVIDER_CONFIG):
+        raise RuntimeError("Startup validation failed: " + "; ".join(issues))
+
+
+_startup_validation()
 
 
 @mcp.custom_route("/healthz", methods=["GET"], include_in_schema=False)
@@ -144,8 +159,24 @@ async def create_booking_request(
     del hotel_id
     effective_offer_id = offer_id or room_id
     if not effective_offer_id:
-        return {"status": "failed", "error": "offer_id (or legacy room_id) is required"}
+        return error_envelope(
+            code="MISSING_OFFER_ID",
+            message="offer_id (or legacy room_id) is required",
+            retryable=False,
+        )
     return await service.create_booking_request(offer_id=effective_offer_id, guest_details=guest_details)
+
+
+@mcp.tool()
+async def cancel_booking(provider_booking_ref: str, reason: str | None = None, email: str | None = None) -> dict:
+    """Attempt booking cancellation. Returns unsupported gracefully if provider lacks capability."""
+    return await service.cancel_booking(provider_booking_ref=provider_booking_ref, reason=reason, email=email)
+
+
+@mcp.tool()
+async def get_booking_status(provider_booking_ref: str) -> dict:
+    """Retrieve booking status. Returns unsupported gracefully if provider lacks capability."""
+    return await service.get_booking_status(provider_booking_ref=provider_booking_ref)
 
 
 # Backward-compatible aliases for existing integrations.

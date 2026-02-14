@@ -1,0 +1,70 @@
+{
+  "captured_at": "2026-02-14T19:32:57.196216+00:00",
+  "upstream_url": "https://hotel.sigtrip.ai/mcp",
+  "scenario": "get_prices.success",
+  "note": "Pricing lookup",
+  "request": {
+    "method": "tools/call",
+    "params": {
+      "name": "get_prices",
+      "arguments": {
+        "hotelName": "The Rally Hotel",
+        "arrivalDate": "2026-02-14",
+        "departureDate": "2026-02-14",
+        "adults": 1
+      }
+    }
+  },
+  "response": {
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "1. STANDARD - All Star King (ASK) — $337.85 total.\n2. DELUXE - Mile High King (MHK) — $358.21 total.\n3. PREMIUM - Champion King Corner (CHKC) — $378.57 total. \n        \n\n        If you’d like, I can also show you photos of the rooms. \n        All prices are flexible and payable at the hotel—you won’t pay anything with me. \n        Your booking will be confirmed after you guarantee it with your credit card."
+        }
+      ],
+      "structuredContent": {
+        "prices": [
+          {
+            "roomType": "ASK",
+            "roomDescription": "STANDARD - All Star King",
+            "totalAmount": 337.85,
+            "currency": "USD",
+            "currencySymbol": "$",
+            "category": "Standard",
+            "displayCategory": "Guest Rooms"
+          },
+          {
+            "roomType": "MHK",
+            "roomDescription": "DELUXE - Mile High King",
+            "totalAmount": 358.21,
+            "currency": "USD",
+            "currencySymbol": "$",
+            "category": "Deluxe",
+            "displayCategory": "Guest Rooms"
+          },
+          {
+            "roomType": "CHKC",
+            "roomDescription": "PREMIUM - Champion King Corner",
+            "totalAmount": 378.57,
+            "currency": "USD",
+            "currencySymbol": "$",
+            "category": "Premium",
+            "displayCategory": "Guest Rooms"
+          }
+        ],
+        "keyPoints": [
+          "I can show you room photos if you want.",
+          "Prices are flexible and payable at the hotel.",
+          "Booking is confirmed after you guarantee it with your credit card.",
+          "If the max occupancy is not enough, suggest booking multiple rooms."
+        ],
+        "_instructions": "Present keyPoints verbatim as bullets.",
+        "galleryCount": 3
+      }
+    },
+    "jsonrpc": "2.0",
+    "id": 1
+  },
+  "tool_list_contains_tool": true
+}

@@ -1,0 +1,11 @@
+{
+  "ok": false,
+  "error": {
+    "code": "INVALID_GUEST_DETAILS_SCHEMA",
+    "message": "guest_details schema validation failed",
+    "retryable": false,
+    "details": {
+      "validation_errors": []
+    }
+  }
+}

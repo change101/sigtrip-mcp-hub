@@ -3,8 +3,17 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from src.client import call_upstream
-from src.models import BookingResponse, GuestDetails, HotelCard, Offer, PricePreview, SearchHotelsResponse
+from src.client import call_upstream, call_upstream_method
+from src.models import (
+    BookingCancellationResponse,
+    BookingResponse,
+    BookingStatusResponse,
+    GuestDetails,
+    HotelCard,
+    Offer,
+    PricePreview,
+    SearchHotelsResponse,
+)
 from src.property_master import resolve_property
 
 
@@ -23,6 +32,8 @@ FALLBACK_IMAGE_BY_CITY = {
 
 class SigtripProvider:
     provider_name = "sigtrip"
+    _cancel_candidates = ("cancel_booking", "cancel_reservation", "cancel_booking_request")
+    _status_candidates = ("get_booking_status", "booking_status", "get_reservation_status")
 
     async def search_hotel_offers(
         self,
@@ -147,6 +158,119 @@ class SigtripProvider:
 
         return BookingResponse(status="failed", error="Booking failed. Room may be unavailable.")
 
+    async def cancel_booking(
+        self,
+        provider_booking_ref: str,
+        reason: str | None = None,
+        email: str | None = None,
+    ) -> BookingCancellationResponse:
+        cancel_tool = await self._find_supported_tool(self._cancel_candidates)
+        if not cancel_tool:
+            return BookingCancellationResponse(
+                status="unsupported",
+                provider=self.provider_name,
+                provider_reference=provider_booking_ref,
+                message="Upstream provider does not support cancellation.",
+            )
+
+        tool_map = await self._list_upstream_tools()
+        cancel_def = tool_map.get(cancel_tool, {})
+        input_schema = cancel_def.get("inputSchema", {}) if isinstance(cancel_def, dict) else {}
+        required = input_schema.get("required", []) if isinstance(input_schema, dict) else []
+        properties = input_schema.get("properties", {}) if isinstance(input_schema, dict) else {}
+
+        payload: dict[str, Any] = {}
+        missing_fields: list[str] = []
+        if "reservationId" in required or "reservationId" in properties:
+            if provider_booking_ref:
+                payload["reservationId"] = provider_booking_ref
+            else:
+                missing_fields.append("reservationId")
+        if "bookingId" in required or "bookingId" in properties:
+            if provider_booking_ref:
+                payload["bookingId"] = provider_booking_ref
+            else:
+                missing_fields.append("bookingId")
+        if "id" in required or "id" in properties:
+            if provider_booking_ref:
+                payload["id"] = provider_booking_ref
+            else:
+                missing_fields.append("id")
+
+        if "email" in required and not email:
+            missing_fields.append("email")
+        if email and ("email" in required or "email" in properties):
+            payload["email"] = email
+
+        description = reason or "Cancellation requested by user"
+        if "description" in required:
+            if reason:
+                payload["description"] = description
+            else:
+                missing_fields.append("description")
+        elif "description" in properties:
+            payload["description"] = description
+        elif "reason" in required or "reason" in properties:
+            payload["reason"] = description
+
+        if missing_fields:
+            required_unique = sorted(set(missing_fields))
+            return BookingCancellationResponse(
+                status="failed",
+                provider=self.provider_name,
+                provider_reference=provider_booking_ref,
+                message="Cancellation requires additional fields.",
+                required_fields=required_unique,
+                next_action="Ask user to provide missing fields from booking confirmation details.",
+            )
+
+        if not payload:
+            payload = {"bookingId": provider_booking_ref, "reason": description}
+
+        data = await call_upstream(cancel_tool, payload)
+        if isinstance(data, dict) and any(key in data for key in ("cancelled", "canceled", "status", "success")):
+            status = str(data.get("status") or "").lower()
+            if "cancel" in status or data.get("cancelled") is True or data.get("canceled") is True:
+                return BookingCancellationResponse(
+                    status="cancelled",
+                    provider=self.provider_name,
+                    provider_reference=provider_booking_ref,
+                    message="Booking cancelled successfully.",
+                )
+            if "pending" in status:
+                return BookingCancellationResponse(
+                    status="pending",
+                    provider=self.provider_name,
+                    provider_reference=provider_booking_ref,
+                    message="Cancellation request is pending.",
+                )
+
+        return BookingCancellationResponse(
+            status="failed",
+            provider=self.provider_name,
+            provider_reference=provider_booking_ref,
+            message="Cancellation failed or upstream response was inconclusive.",
+        )
+
+    async def get_booking_status(self, provider_booking_ref: str) -> BookingStatusResponse:
+        status_tool = await self._find_supported_tool(self._status_candidates)
+        if not status_tool:
+            return BookingStatusResponse(
+                status="unsupported",
+                provider=self.provider_name,
+                provider_reference=provider_booking_ref,
+                message="Upstream provider does not support booking status lookup.",
+            )
+
+        data = await call_upstream(status_tool, {"bookingId": provider_booking_ref})
+        status = _extract_booking_status(data)
+        return BookingStatusResponse(
+            status=status,
+            provider=self.provider_name,
+            provider_reference=provider_booking_ref,
+            message="Status retrieved from upstream." if status != "unknown" else "Status is unknown.",
+        )
+
     def _resolve_target_hotels(self, location: str) -> list[str]:
         normalized = location.lower()
         for city_key, hotels in LOCATION_MAP.items():
@@ -232,6 +356,29 @@ class SigtripProvider:
         hotel_slug, room_type = match.groups()
         return hotel_slug.replace("_", " "), room_type
 
+    async def _find_supported_tool(self, candidates: tuple[str, ...]) -> str | None:
+        tools = await self._list_upstream_tool_names()
+        for candidate in candidates:
+            if candidate in tools:
+                return candidate
+        return None
+
+    async def _list_upstream_tools(self) -> dict[str, dict[str, Any]]:
+        payload = await call_upstream_method("tools/list")
+        if not isinstance(payload, dict):
+            return {}
+        result = payload.get("result", {})
+        tools = result.get("tools", []) if isinstance(result, dict) else []
+        by_name: dict[str, dict[str, Any]] = {}
+        if isinstance(tools, list):
+            for tool in tools:
+                if isinstance(tool, dict) and isinstance(tool.get("name"), str):
+                    by_name[tool["name"]] = tool
+        return by_name
+
+    async def _list_upstream_tool_names(self) -> set[str]:
+        return set((await self._list_upstream_tools()).keys())
+
 
 def _to_float(value: Any) -> float | None:
     try:
@@ -272,3 +419,16 @@ def _looks_like_image_url(url: str) -> bool:
     if any(ext in lowered for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif")):
         return True
     return any(token in lowered for token in ("image", "img", "cloudinary", "unsplash"))
+
+
+def _extract_booking_status(data: Any) -> str:
+    if not isinstance(data, dict):
+        return "unknown"
+    raw = str(data.get("status") or data.get("bookingStatus") or "").lower()
+    if "confirm" in raw:
+        return "confirmed"
+    if "cancel" in raw:
+        return "cancelled"
+    if "pending" in raw:
+        return "pending"
+    return "unknown"

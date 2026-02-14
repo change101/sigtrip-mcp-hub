@@ -1,0 +1,11 @@
+{
+  "captured_at": "2026-02-14T19:32:57.196216+00:00",
+  "upstream_url": "https://hotel.sigtrip.ai/mcp",
+  "tool_names": [
+    "cancel_booking",
+    "get_prices",
+    "get_rooms",
+    "setup_booking",
+    "view_room_gallery"
+  ]
+}

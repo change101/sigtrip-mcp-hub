@@ -1,0 +1,38 @@
+{
+  "captured_at": "2026-02-13T23:36:59.198556+00:00",
+  "upstream_url": "https://hotel.sigtrip.ai/mcp",
+  "scenario": "chain.setup_booking",
+  "note": "Automated chain booking setup before cancellation test",
+  "response": {
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "\n      You'll receive a confirmation text to your phone number and a email to your email address after your booking is confirmed.\n      \n\n      Here is the url to guarantee your booking: https://guarantee.ameniti.ai?id=df65abff-b24e-4ac8-ab6d-bad3c2440b27"
+        }
+      ],
+      "structuredContent": {
+        "guaranteeUrl": "https://guarantee.ameniti.ai?id=df65abff-b24e-4ac8-ab6d-bad3c2440b27",
+        "keyPoints": [
+          "Here is a secure link https://guarantee.ameniti.ai?id=df65abff-b24e-4ac8-ab6d-bad3c2440b27 to guarantee your booking.",
+          "The room and price are held for 15 minutes."
+        ],
+        "bookingDetails": {
+          "firstName": "Diag",
+          "lastName": "Runner",
+          "email": "diagnostics@sigtrip.com",
+          "phoneNumber": "+15555555555",
+          "checkIn": "2026-02-13",
+          "checkOut": "2026-02-13",
+          "guests": 1,
+          "roomType": "ASK",
+          "hotelName": "The Rally Hotel",
+          "createdAt": "2026-02-13T23:37:11.156Z"
+        }
+      }
+    },
+    "jsonrpc": "2.0",
+    "id": 1
+  },
+  "extracted_booking_reference": null
+}
